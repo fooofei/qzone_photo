@@ -46,6 +46,7 @@ QzonePhoto = namedtuple('QzonePhoto',
 def func_save_dir(user):
     '''
     提供下载的文件保存在哪
+    保存至 <脚本目录>\qzone_photo\<用户QQ> 目录
     :return:
     '''
     return os.path.join(curpath, u'qzone_photo', u'{0}'.format(user))
@@ -54,7 +55,6 @@ def func_save_dir(user):
 def func_save_photo(arg):
     '''
     线程函数，运行在线程池中
-    保存至 <脚本目录>\qzone_photo\<用户QQ> 目录
     文件保存格式 <相册名字>_<文件在相册>_<文件名字>.jpeg
     :param arg:
     :return:
