@@ -181,10 +181,11 @@ class QzonePhotoManager(object):
         ablums = []
         url = self.albumbase.format(dest_user)
         c = self.access_net(url, timeout=8)
-        c = json.loads(c)
-        if 'album' in c:
-            for i in c['album']:
-                ablums.append(QzoneAlbum._make([i['id'], i['name'], i['total']]))
+        if c :
+            c = json.loads(c)
+            if 'album' in c:
+                for i in c['album']:
+                    ablums.append(QzoneAlbum._make([i['id'], i['name'], i['total']]))
         return ablums
 
     def get_photos_by_album(self, dest_user, album):
@@ -192,12 +193,13 @@ class QzonePhotoManager(object):
         photos = []
         url = self.photobase.format(dest_user, album.uid)
         c = self.access_net(url, timeout=10)
-        c = json.loads(c)
-        if 'pic' in c:
-            for i in c['pic']:
-                photos.append(QzonePhoto._make([
-                    i['url'], i['name'], album
-                ]))
+        if c :
+            c = json.loads(c)
+            if 'pic' in c:
+                for i in c['pic']:
+                    photos.append(QzonePhoto._make([
+                        i['url'], i['name'], album
+                    ]))
         return photos
 
     def get_photos(self, dest_user):
