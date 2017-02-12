@@ -20,6 +20,7 @@
 # feedback :
 # CHANGELOG:
 # 2017-02-10 v1.00 fooofei: first version
+# 2017-02-12 v2.00 fooofei: 找到原图 API ，可以下载原图了
 
 # __version__ = ''
 
@@ -52,6 +53,28 @@ def func_save_dir(user):
     return os.path.join(curpath, u'qzone_photo', u'{0}'.format(user))
 
 
+def func_save_photo_net_helper(session, url, timeout):
+    '''
+    辅助函数，先用带会话的 session 尝试下载，如果不行就去掉会话尝试下载
+    :param session:
+    :param url:
+    :param timeout:
+    :return:
+    '''
+    if session:
+        # 使用已经登陆过的账户下载，不然加密的照片下载都是写着“加密照片”
+        # 使用 post 还不行，要用 get
+        try:
+            return session.get(url, timeout=timeout)
+        except requests.ReadTimeout:
+            try:
+                return session.post(url, timeout=timeout)
+            except requests.ReadTimeout:
+                return func_save_photo_net_helper(None, url, timeout)
+    else:
+        return requests.get(url, timeout=timeout)
+
+
 def func_save_photo(arg):
     '''
     线程函数，运行在线程池中
@@ -73,13 +96,11 @@ def func_save_photo(arg):
     timeout = 10
     while attempts < 3:
         try:
-            if session:  # 使用已经登陆过的账户下载，不然加密的照片下载都是写着“加密照片”
-                req = session.post(url, timeout=timeout)
-            else:
-                req = requests.post(url, timeout=timeout)
+            req = func_save_photo_net_helper(session, url, timeout)
             break
-        except requests.ReadTimeout:
+        except requests.ReadTimeout, requests.ConnectionError:
             attempts += 1
+            timeout += 5
     else:
         io_print(u'down fail user:{0} {1}'.format(user, photo.url))
         return
@@ -109,6 +130,7 @@ class QzonePhotoManager(object):
         'g_tk={gtk}&t={t}&hostUin={dest_user}&uin={user}'
         '&appid=4&inCharset=gbk&outCharset=gbk&source=qzone&plat=qzone&format=jsonp&callbackFun=')
 
+    # 不是原图质量
     photobase_v3 = ('http://h5.qzone.qq.com/proxy/domain/tjplist.photo.qzone.qq.com/fcgi-bin/'
                     'cgi_list_photo?g_tk={gtk}&t={t}&mode=0&idcNum=5&hostUin={dest_user}'
                     '&topicId={album_id}&noTopic=0&uin={user}&pageStart=0&pageNum=9000'
@@ -151,6 +173,7 @@ class QzonePhotoManager(object):
 
     def _get_cookie(self, cookies):
         '''
+        低版本 API 弃用
         从会话的 cookies 组装为 Qzone 访问所需的 cookie , v3 版本用不到这个
         :param cookies:
         :return:
@@ -161,6 +184,7 @@ class QzonePhotoManager(object):
 
     def access_net(self, url, timeout):
         '''
+        低版本 API 弃用
         使用组装过的 cookie 访问网络，适用于低版本的 qzone api
         :param url:
         :param timeout:
@@ -177,11 +201,16 @@ class QzonePhotoManager(object):
         return c
 
     def get_albums(self, dest_user):
+        '''
+        低版本 API 弃用
+        :param dest_user:
+        :return:
+        '''
         import json
         ablums = []
         url = self.albumbase.format(dest_user)
         c = self.access_net(url, timeout=8)
-        if c :
+        if c:
             c = json.loads(c)
             if 'album' in c:
                 for i in c['album']:
@@ -189,11 +218,17 @@ class QzonePhotoManager(object):
         return ablums
 
     def get_photos_by_album(self, dest_user, album):
+        '''
+        低版本 API 弃用
+        :param dest_user:
+        :param album:
+        :return:
+        '''
         import json
         photos = []
         url = self.photobase.format(dest_user, album.uid)
         c = self.access_net(url, timeout=10)
-        if c :
+        if c:
             c = json.loads(c)
             if 'pic' in c:
                 for i in c['pic']:
@@ -203,13 +238,18 @@ class QzonePhotoManager(object):
         return photos
 
     def get_photos(self, dest_user):
+        '''
+        低版本 API 弃用
+        :param dest_user:
+        :return:
+        '''
         from concurrent.futures import ThreadPoolExecutor
 
         albums = self.get_albums(dest_user)
         for i, album in enumerate(albums):
             if album.count:
                 photos = self.get_photos_by_album(dest_user, album)
-                photos = [(self.session, dest_user, album.name, i, photo) for i, photo in enumerate(photos)]
+                photos = [(None, dest_user, album.name, i, photo) for i, photo in enumerate(photos)]
 
                 p = func_save_dir(dest_user)
                 if not os.path.exists(p):
@@ -241,7 +281,7 @@ class QzonePhotoManager(object):
                                        user=self.user)
 
         c = self.access_net_v3(url, timeout=8)
-        if c :
+        if c:
             c = json.loads(c)
             if 'data' in c and 'albumListModeSort' in c['data']:
                 for i in c['data']['albumListModeSort']:
@@ -250,6 +290,7 @@ class QzonePhotoManager(object):
 
     def get_photos_by_album_v3(self, dest_user, album):
         import json
+
         photos = []
         url = self.photobase_v3.format(
             gtk=self.qzone_g_tk,
@@ -259,12 +300,52 @@ class QzonePhotoManager(object):
             album_id=album.uid)
 
         c = self.access_net_v3(url, timeout=10)
-        if c :
+        if c:
             c = json.loads(c)
             if 'data' in c and 'photoList' in c['data']:
-                for i in c['data']['photoList']:
+                photolist = c['data']['photoList']
+
+                # 先看是否存在原图
+                # get picKey(=lloc)
+                if photolist and 'lloc' in photolist[0]:
+                    p = self.get_raw_photos_by_album(dest_user, album, photolist[0]['lloc'])
+                    if p:
+                        return p
+                for i in photolist:
                     photos.append(QzonePhoto._make([
                         i['url'], i['name'], album
+                    ]))
+        return photos
+
+    def get_raw_photos_by_album(self, dest_user, album, pic_key):
+        import json
+
+        url_raw_photo_base = ('http://h5.qzone.qq.com/proxy/domain/tjplist.photo.qq.com/fcgi-bin/'
+                              'cgi_floatview_photo_list_v2?'
+                              'g_tk={gtk}&t={t}&topicId={album_id}&picKey={pic_key}'
+                              '&shootTime=&cmtOrder=1&fupdate=1&plat=qzone&source=qzone'
+                              '&cmtNum=10&inCharset=utf-8&outCharset=utf-8'
+                              '&offset=0&uin={user}&appid=4&isFirst=1&hostUin={dest_user}&postNum=9999')
+
+        photos = []
+        url = url_raw_photo_base.format(
+            gtk=self.qzone_g_tk,
+            t=random.Random().random(),
+            dest_user=dest_user,
+            user=self.user,
+            album_id=album.uid,
+            pic_key=pic_key)
+
+        c = self.access_net_v3(url, timeout=10)
+        if c:
+            c = json.loads(c)
+            if 'data' in c and 'photos' in c['data']:
+                for i in c['data']['photos']:
+                    pic_url = i['url']
+                    if 'raw' in i:
+                        pic_url = i['raw']
+                    photos.append(QzonePhoto._make([
+                        pic_url, i['name'], album
                     ]))
         return photos
 
@@ -276,19 +357,23 @@ class QzonePhotoManager(object):
         '''
         from concurrent.futures import ThreadPoolExecutor
 
+        # 先获得所有相册
         albums = self.get_albums_v3(dest_user)
+        photos_all = []
         for i, album in enumerate(albums):
             if album.count:
+                # 根据相册 id 获取相册内所有照片
                 photos = self.get_photos_by_album_v3(dest_user, album)
                 photos = [(self.session, dest_user, album.name, i, photo) for i, photo in enumerate(photos)]
 
                 p = func_save_dir(dest_user)
                 if not os.path.exists(p):
                     os.makedirs(p)
+                photos_all.extend(photos)
 
-                with ThreadPoolExecutor(max_workers=4) as pool:
-                    r = pool.map(func_save_photo, photos)
-                    list(r)
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            r = pool.map(func_save_photo, photos_all)
+            list(r)
 
 
 def entry():
@@ -299,18 +384,12 @@ def entry():
     # 要处理的目标 QQ 号
     dest_users = ['']
 
-    #
-    # 低版本 API 下载公开相册，高版本 API 下载加密相册
-    # 测试结果显示 高版本 API 无法下载公开相册
-
     a = QzonePhotoManager(main_user, main_pass)
     io_print(u'登录成功')
 
+    # 如果遇到下载失败的，产生超时异常终止程序运行的，可以再重新运行，已经下载过的文件不会重新下载
     for e in dest_users:
         io_print(u'正在处理用户 {0}'.format(e))
-        io_print(u'使用低版本 API 下载公开相册')
-        a.get_photos(e)
-        io_print(u'使用高版本 API 下载加密相册')
         a.get_photos_v3(e)
         io_print(u'处理完成')
 
