@@ -83,10 +83,13 @@ def io_sys_stdout(arg):
 def io_print(arg):
     io_sys_stdout(arg)
     print ('')
+    sys.stdout.flush()
 
 
 def io_stderr_print(arg):
     global pyver
+    sys.stdout.flush()
+    sys.stderr.flush()
     if pyver < 3:
         print >> sys.stderr, arg
     else:

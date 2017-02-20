@@ -14,6 +14,9 @@
  https://github.com/baocaixiong/learnPy/blob/master/Get_QQ_Photo.py
 
  都不能满足需求，自己就写了个
+
+ 下载文件的保存，请见 func_save_photo 中的函数头注释
+
 '''
 
 # ------------------------------------------------------------------------------
@@ -21,6 +24,8 @@
 # CHANGELOG:
 # 2017-02-10 v1.00 fooofei: first version
 # 2017-02-12 v2.00 fooofei: 找到原图 API ，可以下载原图了
+# 2017-02-20 v2.10 fooofei: 修复 @paukey 反馈的文件保存路径非法问题
+# 2017-02-20 v2.20 fooofei: 修复 @Lodour 反馈的 _get_cookie KeyError 问题，旧 API 已经弃用，关闭此代码
 
 # __version__ = ''
 
@@ -78,14 +83,23 @@ def func_save_photo_net_helper(session, url, timeout):
 def func_save_photo(arg):
     '''
     线程函数，运行在线程池中
-    文件保存格式 <相册名字>_<文件在相册>_<文件名字>.jpeg
+    文件保存格式 <相册名字>_<文件在相册的索引数字>_<文件名字>.jpeg
+
+    1、Q.分次下载的文件，能确保同一个文件名字，都是同一个文件吗？
+       A. 这个由 Qzone 的 API 保证，API 能保证顺序，那么这里就能保证顺序
+    2. Q.文件名字非法，不可创建文件，怎么处理？
+       A. 会用文件名字 <相册在所有相册中的索引数字>_<文件在相册的索引数字>.jpg 进行二次试创建，
+         解决因为相册名字，照片名字引起的文件名非法问题。
     :param arg:
     :return:
     '''
-    session, user, album_name, index, photo = arg
+    session, user, album_index, album_name, index, photo = arg
 
     dest_path = func_save_dir(user)
     c_p = os.path.join(dest_path, u'{0}_{1}_{2}.jpeg'.format(album_name, index, photo.name))
+    if not io_is_path_valid(c_p):
+        c_p = os.path.join(dest_path,u'{0}_{1}.jpg'.format(album_index,index))
+
 
     # 可能使用其他 api 下载过文件就不再下载
     if os.path.exists(c_p):
@@ -145,7 +159,7 @@ class QzonePhotoManager(object):
 
         self.qzone_g_tk = qz.g_tk()
         self.session = qz.session
-        self.cookie = self._get_cookie(qz.session.cookies)
+        self.cookie = None#self._get_cookie(qz.session.cookies)
 
     def _login_qzone(self, user, password):
         qq = qzone.QZone(user, password)
@@ -239,7 +253,7 @@ class QzonePhotoManager(object):
 
     def get_photos(self, dest_user):
         '''
-        低版本 API 弃用
+        低版本 API 弃用 , 不再维护，可能有 bug
         :param dest_user:
         :return:
         '''
@@ -251,13 +265,6 @@ class QzonePhotoManager(object):
                 photos = self.get_photos_by_album(dest_user, album)
                 photos = [(None, dest_user, album.name, i, photo) for i, photo in enumerate(photos)]
 
-                p = func_save_dir(dest_user)
-                if not os.path.exists(p):
-                    os.makedirs(p)
-
-                with ThreadPoolExecutor(max_workers=4) as pool:
-                    r = pool.map(func_save_photo, photos)
-                    list(r)
 
     def access_net_v3(self, url, timeout):
         '''
@@ -364,14 +371,14 @@ class QzonePhotoManager(object):
             if album.count:
                 # 根据相册 id 获取相册内所有照片
                 photos = self.get_photos_by_album_v3(dest_user, album)
-                photos = [(self.session, dest_user, album.name, i, photo) for i, photo in enumerate(photos)]
+                photos = [(self.session, dest_user, i, album.name, si, photo) for si, photo in enumerate(photos)]
 
                 p = func_save_dir(dest_user)
                 if not os.path.exists(p):
                     os.makedirs(p)
                 photos_all.extend(photos)
 
-        with ThreadPoolExecutor(max_workers=1) as pool:
+        with ThreadPoolExecutor(max_workers=20) as pool:
             r = pool.map(func_save_photo, photos_all)
             list(r)
 
