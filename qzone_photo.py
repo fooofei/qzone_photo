@@ -98,7 +98,7 @@ def func_save_photo(arg):
     dest_path = func_save_dir(user)
     c_p = os.path.join(dest_path, u'{0}_{1}_{2}.jpeg'.format(album_name, index, photo.name))
     if not io_is_path_valid(c_p):
-        c_p = os.path.join(dest_path, u'{0}_{1}.jpg'.format(album_index, index))
+        c_p = os.path.join(dest_path, u'{0}_{1}.jpeg'.format(album_index, index))
 
     # 可能使用其他 api 下载过文件就不再下载
     if os.path.exists(c_p):
