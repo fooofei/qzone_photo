@@ -317,8 +317,9 @@ class QzonePhotoManager(object):
                     if p:
                         return p
                 for i in photolist:
+                    pic_url = ('origin_url' in i and i['origin_url'] or i['url'])
                     photos.append(QzonePhoto._make([
-                        i['url'], i['name'], album
+                        pic_url, i['name'], album
                     ]))
         return photos
 
@@ -346,9 +347,9 @@ class QzonePhotoManager(object):
             c = json.loads(c)
             if 'data' in c and 'photos' in c['data']:
                 for i in c['data']['photos']:
-                    pic_url = i['url']
-                    if 'raw' in i:
-                        pic_url = i['raw']
+                    pic_url = ('raw' in i and i['raw']
+                               or 'origin' in i and i['origin']
+                               or i['url'])
                     photos.append(QzonePhoto._make([
                         pic_url, i['name'], album
                     ]))
