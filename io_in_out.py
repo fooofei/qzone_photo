@@ -19,9 +19,11 @@ pyver = sys.version_info[0]  # major
 if pyver >= 3:
     io_code = str
     io_raw_input = input
+    io_str_codes = (str,bytes)
 else:
     io_code = unicode
     io_raw_input = raw_input
+    io_str_codes= (str,unicode)
 
 
 def io_in_arg(arg):
@@ -71,10 +73,12 @@ def io_sys_stdout(arg):
         else:
             return arg
 
+    io_conv_func = lambda e: io_print_type_arg(e) if isinstance(e,io_str_codes) else str(e)
     if isinstance(arg, (tuple, list, dict)):
-        x = map(lambda e: str(io_print_type_arg(e)), arg)
+        x = map(io_conv_func, arg)
         arg = '\t'.join(x)
-    arg = io_print_type_arg(arg)
+    else:
+        arg = io_conv_func(arg)
     r = sys.stdout.write(arg)
     sys.stdout.flush()
     return r
@@ -154,6 +158,9 @@ def test_unicode_list():
     arg = [u'你好', u"中国"]
     io_print(arg)
 
+def test_tupple():
+    a=(1,'2','34',u'中国')
+    io_print(a)
 
 def test():
     test_unicode_list()
@@ -161,3 +168,4 @@ def test():
 
 if __name__ == '__main__':
     test()
+    test_tupple()
