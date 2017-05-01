@@ -107,11 +107,11 @@ def func_save_photo(arg):
     url = photo.url.replace('\\', '')
     attempts = 0
     timeout = 10
-    while attempts < 3:
+    while attempts < 10:
         try:
             req = func_save_photo_net_helper(session, url, timeout)
             break
-        except requests.ReadTimeout, requests.ConnectionError:
+        except (requests.exceptions.ReadTimeout, requests.exceptions.ConnectionError):
             attempts += 1
             timeout += 5
     else:
@@ -139,12 +139,12 @@ class QzonePhotoManager(object):
 
     # v3 的地址都是用过 Chrome 开发者模式查看的
     albumbase_v3 = (
-        'http://h5.qzone.qq.com/proxy/domain/tjalist.photo.qzone.qq.com/fcgi-bin/fcg_list_album_v3?'
+        'https://h5.qzone.qq.com/proxy/domain/tjalist.photo.qzone.qq.com/fcgi-bin/fcg_list_album_v3?'
         'g_tk={gtk}&t={t}&hostUin={dest_user}&uin={user}'
         '&appid=4&inCharset=gbk&outCharset=gbk&source=qzone&plat=qzone&format=jsonp&callbackFun=')
 
     # 不是原图质量
-    photobase_v3 = ('http://h5.qzone.qq.com/proxy/domain/tjplist.photo.qzone.qq.com/fcgi-bin/'
+    photobase_v3 = ('https://h5.qzone.qq.com/proxy/domain/tjplist.photo.qzone.qq.com/fcgi-bin/'
                     'cgi_list_photo?g_tk={gtk}&t={t}&mode=0&idcNum=5&hostUin={dest_user}'
                     '&topicId={album_id}&noTopic=0&uin={user}&pageStart=0&pageNum=9000'
                     '&inCharset=gbk&outCharset=gbk'
@@ -326,7 +326,7 @@ class QzonePhotoManager(object):
     def get_raw_photos_by_album(self, dest_user, album, pic_key):
         import json
 
-        url_raw_photo_base = ('http://h5.qzone.qq.com/proxy/domain/tjplist.photo.qq.com/fcgi-bin/'
+        url_raw_photo_base = ('https://h5.qzone.qq.com/proxy/domain/tjplist.photo.qq.com/fcgi-bin/'
                               'cgi_floatview_photo_list_v2?'
                               'g_tk={gtk}&t={t}&topicId={album_id}&picKey={pic_key}'
                               '&shootTime=&cmtOrder=1&fupdate=1&plat=qzone&source=qzone'
@@ -373,6 +373,7 @@ class QzonePhotoManager(object):
                 photos = [(self.session, dest_user, i, album.name, si, photo) for si, photo in enumerate(photos)]
 
                 p = func_save_dir(dest_user)
+
                 if not os.path.exists(p):
                     os.makedirs(p)
                 photos_all.extend(photos)
@@ -380,6 +381,9 @@ class QzonePhotoManager(object):
         with ThreadPoolExecutor(max_workers=20) as pool:
             r = pool.map(func_save_photo, photos_all)
             list(r)
+
+        if not albums:
+            io_stderr_print(u'未找到 {0} 可下载的相册'.format(dest_user))
 
 
 def entry():
