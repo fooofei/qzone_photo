@@ -26,6 +26,7 @@
 # 2017-02-12 v2.00 fooofei: 找到原图 API ，可以下载原图了
 # 2017-02-20 v2.10 fooofei: 修复 @paukey 反馈的文件保存路径非法问题
 # 2017-02-20 v2.20 fooofei: 修复 @Lodour 反馈的 _get_cookie KeyError 问题，旧 API 已经弃用，关闭此代码
+# 2017-05-01 v2.30 fooofei: update url, 可能是升级了 https
 
 # __version__ = ''
 
