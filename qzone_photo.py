@@ -289,9 +289,10 @@ class QzonePhotoManager(object):
         c = self.access_net_v3(url, timeout=8)
         if c:
             c = json.loads(c)
-            if 'data' in c and 'albumListModeSort' in c['data']:
-                for i in c['data']['albumListModeSort']:
-                    ablums.append(QzoneAlbum._make([i['id'], i['name'], i['total']]))
+            if 'data' in c and 'albumListModeClass' in c['data']:
+                for i in c['data']['albumListModeClass']:
+                    for album in i['albumList']:
+                        ablums.append(QzoneAlbum._make([album['id'], album['name'], album['total']]))
         return ablums
 
     def get_photos_by_album_v3(self, dest_user, album):
