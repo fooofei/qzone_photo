@@ -27,6 +27,7 @@
 # 2017-02-20 v2.10 fooofei: 修复 @paukey 反馈的文件保存路径非法问题
 # 2017-02-20 v2.20 fooofei: 修复 @Lodour 反馈的 _get_cookie KeyError 问题，旧 API 已经弃用，关闭此代码
 # 2017-05-01 v2.30 fooofei: update url, 可能是升级了 https
+# 2017-05-09 v3.00 fooofei: 修复 @youngytj 反馈的因为目标 QQ 设置相册视图不同导致无法获取相册的问题
 
 # __version__ = ''
 
@@ -97,9 +98,12 @@ def func_save_photo(arg):
     session, user, album_index, album_name, index, photo = arg
 
     dest_path = func_save_dir(user)
-    c_p = os.path.join(dest_path, u'{0}_{1}_{2}.jpeg'.format(album_name, index, photo.name))
+    fn = u'{0}_{1}_{2}.jpeg'.format(album_name, index, photo.name)
+    _func_replace_os_path_sep = lambda x: x.replace(u'/', u'_').replace(u'\\', u'_')
+    fn = _func_replace_os_path_sep(fn)
+    c_p = os.path.join(dest_path,fn)
     if not io_is_path_valid(c_p):
-        c_p = os.path.join(dest_path, u'{0}_{1}.jpeg'.format(album_index, index))
+        c_p = os.path.join(dest_path, u'random_name_{0}_{1}.jpeg'.format(album_index, index))
 
     # 可能使用其他 api 下载过文件就不再下载
     if os.path.exists(c_p):
@@ -142,7 +146,7 @@ class QzonePhotoManager(object):
     albumbase_v3 = (
         'https://h5.qzone.qq.com/proxy/domain/tjalist.photo.qzone.qq.com/fcgi-bin/fcg_list_album_v3?'
         'g_tk={gtk}&t={t}&hostUin={dest_user}&uin={user}'
-        '&appid=4&inCharset=gbk&outCharset=gbk&source=qzone&plat=qzone&format=jsonp&callbackFun=')
+        '&appid=4&inCharset=gbk&outCharset=gbk&source=qzone&plat=qzone&format=jsonp&callbackFun=&mode=2')
 
     # 不是原图质量
     photobase_v3 = ('https://h5.qzone.qq.com/proxy/domain/tjplist.photo.qzone.qq.com/fcgi-bin/'
@@ -289,8 +293,8 @@ class QzonePhotoManager(object):
         c = self.access_net_v3(url, timeout=8)
         if c:
             c = json.loads(c)
-            if 'data' in c and 'albumListModeSort' in c['data']:
-                for i in c['data']['albumListModeSort']:
+            if 'data' in c and 'albumList' in c['data']:
+                for i in c['data']['albumList']:
                     ablums.append(QzoneAlbum._make([i['id'], i['name'], i['total']]))
         return ablums
 
@@ -367,6 +371,7 @@ class QzonePhotoManager(object):
         # 先获得所有相册
         albums = self.get_albums_v3(dest_user)
         photos_all = []
+        io_print(u'获取到 {0} 个相册'.format(len(albums)))
         for i, album in enumerate(albums):
             if album.count:
                 # 根据相册 id 获取相册内所有照片
