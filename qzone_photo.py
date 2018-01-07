@@ -175,8 +175,11 @@ class QzonePhotoManager(object):
             ver_path = os.path.join(curpath, 'verify.jpg')
             if os.path.exists(ver_path):
                 os.remove(ver_path)
+            fimage=ver.fetch_image()
+            if not fimage: # response status code = 500
+                raise ex # rethrow exception
             with open(ver_path, 'wb') as f:
-                f.write(ver.image)
+                f.write(fimage)
             io_print(u'验证码保存至{0}'.format(ver_path))
             os.system(ver_path)
             ver_code = io_raw_input(io_out_arg(u'输入验证码:'))
