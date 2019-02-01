@@ -101,7 +101,7 @@ def func_save_photo(arg):
     fn = u'{0}_{1}_{2}.jpeg'.format(album_name, index, photo.name)
     _func_replace_os_path_sep = lambda x: x.replace(u'/', u'_').replace(u'\\', u'_')
     fn = _func_replace_os_path_sep(fn)
-    c_p = os.path.join(dest_path,fn)
+    c_p = os.path.join(dest_path, fn)
     if not io_is_path_valid(c_p):
         c_p = os.path.join(dest_path, u'random_name_{0}_{1}.jpeg'.format(album_index, index))
 
@@ -175,9 +175,9 @@ class QzonePhotoManager(object):
             ver_path = os.path.join(curpath, 'verify.jpg')
             if os.path.exists(ver_path):
                 os.remove(ver_path)
-            fimage=ver.fetch_image()
-            if not fimage: # response status code = 500
-                raise ex # rethrow exception
+            fimage = ver.fetch_image()
+            if not fimage:  # response status code = 500
+                raise ex  # rethrow exception
             with open(ver_path, 'wb') as f:
                 f.write(fimage)
             io_print(u'验证码保存至{0}'.format(ver_path))
@@ -397,11 +397,11 @@ class QzonePhotoManager(object):
 
 def entry():
     # 你的 QQ
-    main_user = ''
-    main_pass = ''
+    main_user = ""
+    main_pass = ""
 
     # 要处理的目标 QQ 号
-    dest_users = ['']
+    dest_users = [""]
 
     a = QzonePhotoManager(main_user, main_pass)
     io_print(u'登录成功')
