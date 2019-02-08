@@ -25,7 +25,7 @@ Python 负责登录 Qzone，Python负责获取照片 URI， Python负责启动�
 有工具 http://aria2c.com/ 查看下载进度和实时下载速度。
 
 
-## 步骤详解：
+## 步骤详解
 
 ### 登录
 
