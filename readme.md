@@ -16,7 +16,7 @@ Python 负责登录 Qzone，Python负责获取照片 URI， Python负责启动�
 
 第一步骤，使用Chrome（或其他浏览器，需要自己去适配）登录 Qzone，此时浏览器记录了Qzone登录需要的 Cookies
 
-第二步骤，使用Go语言编写的程序，获取上一步骤 Chrome 的Cookies，
+第二步骤，使用Go语言编写的程序，借助上一步骤 Chrome 的Cookies，
 
 获取所有相册（也可以自行修改程序增加过滤需求）中所有照片的 URI ，组装为 aria2 格式。
 
