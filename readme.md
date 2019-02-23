@@ -36,6 +36,7 @@ Python 负责登录 Qzone，Python负责获取照片 URI， Python负责启动�
 
 获取照片程序编译命令
 ```bash
+go mod tidy
 go build -v -mod=vendor
 ```
 
