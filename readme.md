@@ -2,7 +2,14 @@
 
 # Go 版本的使用方法
 
-20190208 更新
+
+### 20190714 更新
+
+方案依旧可用
+
+小幅修改说明，整理代码目录结构。暂时对 Golang 如何安排目录结构还存在疑惑。
+
+### 20190208 更新
 
 上一个老办法是 Python 版本，是一个整体解决方案。
 
@@ -47,16 +54,17 @@ go build -v -mod=vendor
 ```
 运行时需要读取 Chrome Cookies 文件，需要一定权限。在MacOS 表现为弹窗需要输入笔记本密码。
 
-获取照片程序运行后，包含以下几个文件
+获取照片程序运行后，生成两个给`Aria2`使用的文件
 ```
 $ tree
 .
 ├── aria2.conf
 ├── qzone.aria2.session
-├── qzonephoto
-└── qzonephoto.go
 
-0 directories, 4 files
+```
+同时也会给出你要继续运行的命令，直接拷贝运行即可，比如
+```
+aria2c --conf-path=/xxx/git_src/qzone_photo/goqzone/src/aria2.conf
 ```
 
 获取照片URI可能遇到以下错误：
