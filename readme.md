@@ -38,18 +38,12 @@ Python 负责登录 Qzone，Python负责获取照片 URI， Python负责启动�
 
 直接运行 
 ```shell
-go build -v
-```
-以下命令供参考
-```bash
-go mod tidy
-go mod vendor
 go build -v -mod=vendor
 ```
 
 运行命令为 
 ```
-./qzonephoto -self <你的QQ> -target <目标QQ>
+./main -self <你的QQ> -target <目标QQ>
 ```
 运行时需要读取 Chrome Cookies 文件，需要一定权限。在MacOS 表现为弹窗需要输入笔记本密码。
 
