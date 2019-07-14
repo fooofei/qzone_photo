@@ -247,7 +247,9 @@ func dupChromeCookies(ctx *qpContext) (http.CookieJar, error) {
         if err != nil {
             return nil, err
         }
+        log.Printf("Dup Chrome Cookies to %v", localCacheFile)
     }
+    log.Printf("Load Cookies from cache file %v", localCacheFile)
     fr, err := os.Open(localCacheFile)
     dec := gob.NewDecoder(fr)
     err = dec.Decode(&cookies)
@@ -282,7 +284,7 @@ func queryAlbums(ctx *qpContext) ([]*album, error) {
         "/tjalist.photo.qzone.qq.com/fcgi-bin/fcg_list_album_v3"+
         "?g_tk=%v&t=%v&hostUin=%v&uin=%v"+
         "&appid=4&inCharset=utf-8&outCharset=utf-8&source=qzone"+
-        "&plat=qzone&format=jsonp&callbackFun=&mode=2",
+        "&plat=qzone&format=jsonp&callbackFun=&mode=2&pageStart=0&pageNum=1000",
         ctx.QzoneGTK, rand.Int(), ctx.TargetQid, ctx.MyQid)
 
     clt := newQzoneHttpClt(ctx)
