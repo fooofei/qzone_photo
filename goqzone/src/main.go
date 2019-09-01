@@ -82,7 +82,8 @@ func newQzoneHttpClt(ctx *qpContext) *http.Client {
 	return clt
 }
 
-func noblockEnqError(ctx *qpContext, err error) {
+func nonblockEnqError(ctx *qpContext, err error) {
+	// If tell exit, then not push error anymore
 	select {
 	case <-ctx.WaitCtx.Done():
 		return
@@ -120,7 +121,7 @@ func waitPhoto(ctx *qpContext) {
 	_ = err
 	var ok bool
 
-	// if not exist will create new one, if exist will truncate
+	// If not exist will create new one, if exist will truncate
 	fw, err := os.Create(ctx.Aria2SessionFile)
 	if err != nil {
 		log.Panic(err)
@@ -164,7 +165,7 @@ func setupSignal(ctx *qpContext, cancel context.CancelFunc) {
 	}()
 }
 
-// via from qqlib/qzone.py
+// From qqlib/qzone.py
 func makeGTKFromKey(p_skey string) int {
 	h := 5381
 	_ = h
@@ -205,7 +206,7 @@ func parseCookies(rawUrl string, cks []*http.Cookie, jar *cookiejar.Jar, ctx *qp
 	if err != nil {
 		return err
 	}
-	//
+
 	jar.SetCookies(u, cks)
 	// cannot use jar.Cookies(u) for search `p_skey`
 	// the cookie.Domain will be clean, cannot use for match
@@ -257,7 +258,8 @@ func dupChromeCookies(ctx *qpContext) (http.CookieJar, error) {
 	if err != nil {
 		return nil, err
 	}
-	// you can comment it for use a cache
+	// TODO:you can comment it for use a cache
+	// remove the file will not keep cache
 	_ = os.Remove(localCacheFile)
 
 	err = parseCookies("https://www.qzone.qq.com", cookies, jar, ctx)
@@ -290,22 +292,21 @@ func queryAlbums(ctx *qpContext) ([]*album, error) {
 
 	clt := newQzoneHttpClt(ctx)
 	req, err := http.NewRequest("GET", uri, nil)
-	req = req.WithContext(ctx.WaitCtx)
 	if err != nil {
 		return nil, err
 	}
+	req = req.WithContext(ctx.WaitCtx)
 	resp, err := clt.Do(req)
 	if err != nil {
 		return nil, err
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
 	if resp.StatusCode != 200 {
+		_ = resp.Body.Close()
 		return nil, fmt.Errorf("resp.statusCode=%v", resp.StatusCode)
 	}
 	m, err := handleQzoneResp(resp.Body)
+	_ = resp.Body.Close()
 	if err != nil {
 		return nil, err
 	}
@@ -367,35 +368,34 @@ func queryPhotos(ctx *qpContext, ab *album) {
 
 	clt := newQzoneHttpClt(ctx)
 	req, err := http.NewRequest("GET", uri1, nil)
-	req = req.WithContext(ctx.WaitCtx)
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
+	req = req.WithContext(ctx.WaitCtx)
 	resp, err := clt.Do(req)
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
 
 	if resp.StatusCode != 200 {
-		noblockEnqError(ctx, fmt.Errorf("resp.StatusCode=%v", resp.StatusCode))
+		nonblockEnqError(ctx, fmt.Errorf("resp.StatusCode = %v", resp.StatusCode))
+		_ = resp.Body.Close()
 		return
 	}
 
 	m, err := handleQzoneResp(resp.Body)
+	_ = resp.Body.Close()
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
 
 	photoList, _ := m["photoList"].([]interface{})
 	if len(photoList) <= 0 {
 		if ab.Total > 0 {
-			noblockEnqError(ctx, fmt.Errorf("ab=%v but len=0", ab))
+			nonblockEnqError(ctx, fmt.Errorf("ab=%v but len=0", ab))
 		}
 		return
 	}
@@ -412,26 +412,25 @@ func queryPhotos(ctx *qpContext, ab *album) {
 
 	req, err = http.NewRequest("GET", uri2, nil)
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
 	resp, err = clt.Do(req)
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
-	defer func() {
-		_ = resp.Body.Close()
-	}()
-
+	
 	if resp.StatusCode != 200 {
-		noblockEnqError(ctx, fmt.Errorf("resp.StatusCode= %v", resp.StatusCode))
+		nonblockEnqError(ctx, fmt.Errorf("resp.StatusCode = %v", resp.StatusCode))
+		_ = resp.Body.Close()
 		return
 	}
 
 	m, err = handleQzoneResp(resp.Body)
+	_ = resp.Body.Close()
 	if err != nil {
-		noblockEnqError(ctx, err)
+		nonblockEnqError(ctx, err)
 		return
 	}
 
@@ -508,7 +507,7 @@ func main() {
 	ctx.ChromeCookiesFile =
 		fmt.Sprintf("%s/Library/Application Support/Google/Chrome/Default/Cookies",
 			usr.HomeDir)
-	//
+
 	ctx.TaskDoneCh = make(chan bool)
 	setupSignal(ctx, cancel)
 
@@ -520,7 +519,6 @@ func main() {
 	ctx.PhotoCh = make(chan *photo, 10*1000)
 	ctx.ErrorsCh = make(chan error, 10)
 
-	//
 	abs, err := queryAlbums(ctx)
 	if err != nil {
 		log.Printf("got err= %v", err)
