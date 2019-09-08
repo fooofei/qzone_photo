@@ -56,7 +56,7 @@ Python 负责登录 Qzone，Python负责获取照片 URI， Python负责启动�
 
 直接运行 
 ```shell
-go build -v -mod=vendor
+go build -v
 ```
 
 运行命令为 
