@@ -1,4 +1,4 @@
-module main
+module github.com/fooofei/qzone_photo
 
 require (
 	github.com/go-sqlite/sqlite3 v0.0.0-20180313105335-53dd8e640ee7 // indirect
@@ -8,4 +8,4 @@ require (
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4 // indirect
 )
 
-go 1.12
+go 1.21
