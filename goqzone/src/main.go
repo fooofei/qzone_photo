@@ -24,7 +24,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zellyn/kooky"
+	"github.com/browserutils/kooky"
 )
 
 type album struct {
@@ -226,7 +226,6 @@ func dupChromeCookies(ctx *qpContext) (http.CookieJar, error) {
 	localCacheFile := filepath.Join(ctx.CurDir, "ckcache")
 
 	if _, err = os.Stat(localCacheFile); os.IsNotExist(err) {
-
 		kkyCookies, err := kooky.ReadChromeCookies(ctx.ChromeCookiesFile, "", "", time.Time{})
 		if err != nil {
 			return nil, err
